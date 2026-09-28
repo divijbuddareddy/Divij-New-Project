@@ -68,10 +68,12 @@ async def health_check():
 
 def get_frontend_dir():
     candidates = [
-        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "out"),
+        os.path.abspath("static"),
         os.path.abspath("frontend/out"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "static"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static"),
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "out"),
         os.path.abspath("out"),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend", "out"),
     ]
     for c in candidates:
         if os.path.exists(c) and os.path.exists(os.path.join(c, "index.html")):
@@ -79,6 +81,7 @@ def get_frontend_dir():
     return None
 
 frontend_dir = get_frontend_dir()
+
 
 if frontend_dir:
     next_dir = os.path.join(frontend_dir, "_next")
