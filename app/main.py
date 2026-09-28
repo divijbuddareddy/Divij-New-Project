@@ -1,5 +1,8 @@
+import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from contextlib import asynccontextmanager
 from app.config import settings
 from app.database import init_db
@@ -63,10 +66,46 @@ async def health_check():
         "environment": settings.ENVIRONMENT
     }
 
-@app.get("/", tags=["Root"])
-async def root():
-    return {
-        "message": "Welcome to StartupOps AI Live Engine",
-        "docs": "/docs",
-        "health": "/health"
-    }
+def get_frontend_dir():
+    candidates = [
+        os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "frontend", "out"),
+        os.path.abspath("frontend/out"),
+        os.path.abspath("out"),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "frontend", "out"),
+    ]
+    for c in candidates:
+        if os.path.exists(c) and os.path.exists(os.path.join(c, "index.html")):
+            return c
+    return None
+
+frontend_dir = get_frontend_dir()
+
+if frontend_dir:
+    next_dir = os.path.join(frontend_dir, "_next")
+    if os.path.exists(next_dir):
+        app.mount("/_next", StaticFiles(directory=next_dir), name="_next")
+
+    @app.get("/", tags=["Frontend"])
+    async def serve_root():
+        index_path = os.path.join(frontend_dir, "index.html")
+        return FileResponse(index_path)
+
+    @app.get("/{full_path:path}", tags=["Frontend"])
+    async def serve_spa(full_path: str):
+        if full_path.startswith("api/") or full_path in ["docs", "redoc", "openapi.json", "health"]:
+            return None
+        file_path = os.path.join(frontend_dir, full_path)
+        if os.path.isfile(file_path):
+            return FileResponse(file_path)
+        index_path = os.path.join(frontend_dir, "index.html")
+        if os.path.isfile(index_path):
+            return FileResponse(index_path)
+        return {"message": "StartupOps AI Ready", "docs": "/docs"}
+else:
+    @app.get("/", tags=["Root"])
+    async def root():
+        return {
+            "message": "Welcome to StartupOps AI Live Engine",
+            "docs": "/docs",
+            "health": "/health"
+        }

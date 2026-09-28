@@ -1,67 +1,24 @@
 services:
   # ---------------------------------------------------------------------------
-  # StartupOps AI — FastAPI Backend Service
+  # StartupOps AI — Unified Full-Stack Service (Frontend UI + Backend API)
   # ---------------------------------------------------------------------------
   - type: web
-    name: startupops-backend
+    name: startupops-ai
     runtime: python
-    rootDir: backend
-    buildCommand: pip install -r requirements.txt
-    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    buildCommand: ./build.sh
+    startCommand: python main.py
     healthCheckPath: /health
     plan: free
     envVars:
       - key: PYTHON_VERSION
         value: 3.11.9
+      - key: NODE_VERSION
+        value: 18.20.4
       - key: ENVIRONMENT
         value: production
       - key: APP_SECRET_KEY
         generateValue: true
       - key: ENCRYPTION_KEY
         generateValue: true
-      - key: DATABASE_URL
-        fromDatabase:
-          name: startupops-db
-          property: connectionString
       - key: GOOGLE_AI_STUDIO_API_KEY
         sync: false
-      - key: FRONTEND_URL
-        fromService:
-          type: web
-          name: startupops-frontend
-          property: host
-
-  # ---------------------------------------------------------------------------
-  # StartupOps AI — Next.js Frontend Service
-  # ---------------------------------------------------------------------------
-  - type: web
-    name: startupops-frontend
-    runtime: node
-    rootDir: frontend
-    buildCommand: npm install && npm run build
-    startCommand: npm start
-    plan: free
-    envVars:
-      - key: NODE_VERSION
-        value: 18.20.4
-      - key: NODE_ENV
-        value: production
-      - key: BACKEND_URL
-        fromService:
-          type: web
-          name: startupops-backend
-          property: host
-      - key: NEXT_PUBLIC_API_URL
-        fromService:
-          type: web
-          name: startupops-backend
-          property: host
-
-databases:
-  # ---------------------------------------------------------------------------
-  # Render PostgreSQL Database (Free Tier)
-  # ---------------------------------------------------------------------------
-  - name: startupops-db
-    databaseName: startupops
-    user: startupops_admin
-    plan: free
